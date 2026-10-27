@@ -1,0 +1,20 @@
+{
+  "product": {
+    "id": "product:brake-control-ecu",
+    "name": "Brake Control ECU",
+    "version": "1.4.0"
+  },
+  "component": {
+    "purl": "pkg:generic/brake-control@1.4.0",
+    "version": "1.4.0",
+    "digest": {
+      "algorithm": "SHA-256",
+      "value": "1b98c3f835dc944105b704bf4c8a5c4411516c932f8867d92b0a355c7ceadbea"
+    }
+  },
+  "exporter": {
+    "name": "doors-next-srac-exporter",
+    "version": "0.1.0"
+  }
+}
+

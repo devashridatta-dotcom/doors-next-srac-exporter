@@ -1,0 +1,34 @@
+{
+  "artifacts": [
+    {
+      "id": "_abc123",
+      "url": "https://elm.example.test/rm/resources/_abc123",
+      "title": "Brake torque control shall remain available during degraded communication",
+      "revision": "42",
+      "projectArea": "Brake-Control",
+      "configuration": "Baseline-1.4",
+      "attributes": {
+        "safetyRelevance": "SAFETY_RELATED",
+        "classificationScheme": "ISO26262",
+        "classificationValue": "ASIL-B",
+        "decisionStatus": "APPROVED",
+        "rationale": "Supports a safety-related braking function."
+      },
+      "review": {
+        "reviewedBy": "Functional Safety Manager",
+        "reviewedAt": "2026-10-24T16:00:00Z"
+      },
+      "links": [
+        {
+          "type": "verifiedBy",
+          "url": "https://elm.example.test/qm/resources/_test456"
+        },
+        {
+          "type": "tracedTo",
+          "url": "https://elm.example.test/rm/resources/_hazard789"
+        }
+      ]
+    }
+  ]
+}
+
