@@ -16,7 +16,10 @@ def _load_json(path: str) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Read-only DOORS Next SRAC reference exporter")
-    parser.add_argument("--config", help="JSON export configuration")
+    parser.add_argument(
+        "--config",
+        help="JSON export configuration with an explicit Reportable REST configuration",
+    )
     parser.add_argument("--input", help="Normalized Reportable REST response JSON")
     parser.add_argument("--output", help="Destination SRAC interchange document")
     parser.add_argument("--validate", help="Validate an existing SRAC interchange document")

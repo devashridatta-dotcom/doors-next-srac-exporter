@@ -25,6 +25,59 @@ def _require(mapping: dict[str, Any], key: str, label: str) -> Any:
     return value
 
 
+def _require_mapping(mapping: dict[str, Any], key: str, label: str) -> dict[str, Any]:
+    value = _require(mapping, key, label)
+    if not isinstance(value, dict):
+        raise ValidationError(f"Expected {label} to be an object: {key}")
+    return value
+
+
+def _selected_configuration(
+    config: dict[str, Any], response: dict[str, Any]
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Validate the caller-selected Reportable REST configuration.
+
+    Configuration discovery is intentionally outside this exporter. The caller
+    selects a configuration URI, requests ``coverpage=true``, and supplies the
+    resulting response. The response cover page must identify the same
+    configuration before any artifacts are exported.
+    """
+    reportable_rest = _require_mapping(
+        config, "reportableRest", "Reportable REST settings"
+    )
+    _require(reportable_rest, "endpoint", "Reportable REST endpoint")
+    if reportable_rest.get("coverpage") is not True:
+        raise ValidationError("Reportable REST export must be requested with coverpage=true")
+
+    selected = _require_mapping(
+        reportable_rest, "configuration", "explicit Reportable REST configuration"
+    )
+    selected_uri = _require(selected, "uri", "selected configuration URI")
+
+    coverpage = _require_mapping(response, "coverpage", "Reportable REST cover page")
+    actual = _require_mapping(
+        coverpage, "configuration", "cover-page configuration metadata"
+    )
+    actual_uri = _require(actual, "uri", "cover-page configuration URI")
+    if actual_uri != selected_uri:
+        raise ValidationError(
+            "Reportable REST response configuration does not match the "
+            "explicitly selected configuration"
+        )
+
+    selected_name = selected.get("name")
+    actual_name = actual.get("name")
+    if selected_name and actual_name and selected_name != actual_name:
+        raise ValidationError(
+            "Reportable REST response configuration name does not match the "
+            "explicitly selected configuration"
+        )
+    return reportable_rest, {
+        "uri": selected_uri,
+        "name": selected_name or actual_name,
+    }
+
+
 def validate_document(document: dict[str, Any]) -> None:
     if document.get("schema") != "https://example.org/srac/interchange/v0.1":
         raise ValidationError("Unsupported or missing SRAC interchange schema")
@@ -38,12 +91,35 @@ def validate_document(document: dict[str, Any]) -> None:
     digest = _require(component, "digest", "component digest")
     _require(digest, "algorithm", "component digest algorithm")
     _require(digest, "value", "component digest value")
+    source_document = _require_mapping(
+        document, "sourceDocument", "source document metadata"
+    )
+    if source_document.get("interface") != "IBM DOORS Next Reportable REST":
+        raise ValidationError("Unsupported source interface")
+    _require(source_document, "endpoint", "Reportable REST endpoint")
+    if source_document.get("coverpage") is not True:
+        raise ValidationError("Source metadata must record coverpage=true")
+    document_configuration = _require_mapping(
+        source_document, "configuration", "selected source configuration"
+    )
+    document_configuration_uri = _require(
+        document_configuration, "uri", "selected source configuration URI"
+    )
     for assertion in assertions:
         _require(assertion, "outcome", "assertion outcome")
         _require(assertion, "decisionStatus", "assertion decision state")
         source = _require(assertion, "source", "assertion source")
         _require(source, "url", "source artifact URL")
-        _require(source, "configuration", "source baseline or configuration")
+        source_configuration = _require_mapping(
+            source, "configuration", "source baseline or configuration"
+        )
+        source_configuration_uri = _require(
+            source_configuration, "uri", "source configuration URI"
+        )
+        if source_configuration_uri != document_configuration_uri:
+            raise ValidationError(
+                "Assertion source configuration does not match source document"
+            )
 
 
 def export_document(config: dict[str, Any], response: dict[str, Any]) -> dict[str, Any]:
@@ -54,6 +130,8 @@ def export_document(config: dict[str, Any], response: dict[str, Any]) -> dict[st
     digest = _require(component, "digest", "configuration component digest")
     _require(digest, "algorithm", "configuration component digest algorithm")
     _require(digest, "value", "configuration component digest value")
+
+    reportable_rest, selected_configuration = _selected_configuration(config, response)
 
     artifacts = _require(response, "artifacts", "response artifacts")
     if not isinstance(artifacts, list) or not artifacts:
@@ -70,7 +148,7 @@ def export_document(config: dict[str, Any], response: dict[str, Any]) -> dict[st
             "title": artifact.get("title"),
             "revision": artifact.get("revision"),
             "projectArea": artifact.get("projectArea"),
-            "configuration": _require(artifact, "configuration", "artifact baseline or configuration"),
+            "configuration": selected_configuration,
         }
         assertions.append(
             {
@@ -94,10 +172,16 @@ def export_document(config: dict[str, Any], response: dict[str, Any]) -> dict[st
     document = {
         "schema": "https://example.org/srac/interchange/v0.1",
         "generatedAt": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-        "exporter": config.get("exporter", {"name": "doors-next-srac-exporter", "version": "0.1.0"}),
+        "exporter": config.get(
+            "exporter", {"name": "doors-next-srac-exporter", "version": "0.2.0"}
+        ),
         "product": product,
         "component": component,
         "sourceDocument": {
+            "interface": "IBM DOORS Next Reportable REST",
+            "endpoint": reportable_rest["endpoint"],
+            "coverpage": True,
+            "configuration": selected_configuration,
             "digest": {"algorithm": "SHA-256", "value": canonical_digest(response)}
         },
         "assertions": assertions,

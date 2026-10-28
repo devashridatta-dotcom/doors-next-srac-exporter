@@ -1,13 +1,17 @@
 # Reportable REST field mapping
 
-The adapter expects a normalized JSON response. A DOORS Next deployment maps its selected Reportable REST API output—or a controlled JRS report—to this shape before passing it to the writer.
+The adapter expects a normalized JSON response from a caller-selected DOORS
+Next Reportable REST configuration. The request must include `coverpage=true`.
+The adapter does not discover configurations through OSLC.
 
 | Normalized field | Source purpose | SRAC output |
 | --- | --- | --- |
-| `id`, `url`, `title` | Stable source artifact identity and human context | `source.artifact` |
+| `config.reportableRest.endpoint` | Explicit Reportable REST endpoint | `sourceDocument.endpoint` |
+| `config.reportableRest.configuration` | Caller-selected configuration URI and name | `sourceDocument.configuration` and each `assertion.source.configuration` |
+| `coverpage.configuration` | Configuration metadata returned with `coverpage=true` | Validated against the caller-selected configuration |
+| `id`, `url`, `title` | Stable source artifact identity and human context | `source.artifactId`, `source.url`, `source.title` |
 | `revision` | Exact artifact revision | `source.revision` |
 | `projectArea` | ELM project scope | `source.projectArea` |
-| `configuration` | Baseline or configuration context | `source.configuration` |
 | `attributes.safetyRelevance` | Existing safety-relevance determination | `assertion.outcome` |
 | `attributes.classificationScheme`, `classificationValue` | Existing external classification reference | `assertion.classification` |
 | `attributes.decisionStatus` | Existing lifecycle/review state | `assertion.decisionStatus` |
@@ -17,9 +21,19 @@ The adapter expects a normalized JSON response. A DOORS Next deployment maps its
 
 ## Required controls
 
-The exporter rejects an artifact when it lacks a source URL, baseline/configuration, safety-relevance outcome, decision status, or a component pURL and digest from the supplied export configuration. It never chooses an ambiguous mapping or supplies a missing safety classification.
+The exporter rejects an export when the selected configuration is absent, when
+`coverpage=true` is not recorded, or when the response cover-page configuration
+does not match the explicit selection. It also rejects artifacts that lack a
+source URL, safety-relevance outcome, or decision status, and rejects exports
+without a component pURL and digest. It never chooses an ambiguous mapping or
+supplies a missing safety classification.
 
-## Reportable REST versus JRS
+## Why Reportable REST
 
-Use Reportable REST for the first implementation because the adapter controls the selected fields and can retain raw response digests. JRS is appropriate later where a controlled, immutable report definition is already governed by the organization.
+Reportable REST is the reference interface because it supplies artifact
+identity, attributes, traceability, revisions, configuration-aware links, and
+configuration metadata through the cover page. JRS and OSLC RM are outside the
+current implementation. OSLC RM would only be reconsidered if future scope
+requires configuration discovery or another capability not provided by the
+selected Reportable REST export.
 

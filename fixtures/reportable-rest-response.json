@@ -1,4 +1,10 @@
 {
+  "coverpage": {
+    "configuration": {
+      "uri": "https://elm.example.test/gc/configuration/123",
+      "name": "Baseline-1.4"
+    }
+  },
   "artifacts": [
     {
       "id": "_abc123",
@@ -6,7 +12,6 @@
       "title": "Brake torque control shall remain available during degraded communication",
       "revision": "42",
       "projectArea": "Brake-Control",
-      "configuration": "Baseline-1.4",
       "attributes": {
         "safetyRelevance": "SAFETY_RELATED",
         "classificationScheme": "ISO26262",

@@ -1,4 +1,12 @@
 {
+  "reportableRest": {
+    "endpoint": "https://elm.example.test/rm/publish/resources/*",
+    "coverpage": true,
+    "configuration": {
+      "uri": "https://elm.example.test/gc/configuration/123",
+      "name": "Baseline-1.4"
+    }
+  },
   "product": {
     "id": "product:brake-control-ecu",
     "name": "Brake Control ECU",
@@ -14,7 +22,7 @@
   },
   "exporter": {
     "name": "doors-next-srac-exporter",
-    "version": "0.1.0"
+    "version": "0.2.0"
   }
 }
 

@@ -20,7 +20,15 @@ class ExporterTests(unittest.TestCase):
         assertion = document["assertions"][0]
         self.assertEqual(assertion["outcome"], "SAFETY_RELATED")
         self.assertEqual(assertion["classification"]["value"], "ASIL-B")
-        self.assertEqual(assertion["source"]["configuration"], "Baseline-1.4")
+        self.assertEqual(
+            assertion["source"]["configuration"]["uri"],
+            "https://elm.example.test/gc/configuration/123",
+        )
+        self.assertTrue(document["sourceDocument"]["coverpage"])
+        self.assertEqual(
+            document["sourceDocument"]["interface"],
+            "IBM DOORS Next Reportable REST",
+        )
         self.assertEqual(len(assertion["evidence"]), 2)
 
     def test_rejects_missing_component_digest(self):
@@ -30,6 +38,28 @@ class ExporterTests(unittest.TestCase):
 
     def test_rejects_missing_decision_status(self):
         del self.response["artifacts"][0]["attributes"]["decisionStatus"]
+        with self.assertRaises(ValidationError):
+            export_document(self.config, self.response)
+
+    def test_rejects_missing_explicit_configuration(self):
+        del self.config["reportableRest"]["configuration"]
+        with self.assertRaises(ValidationError):
+            export_document(self.config, self.response)
+
+    def test_rejects_configuration_mismatch(self):
+        self.response["coverpage"]["configuration"]["uri"] = (
+            "https://elm.example.test/gc/configuration/other"
+        )
+        with self.assertRaises(ValidationError):
+            export_document(self.config, self.response)
+
+    def test_rejects_missing_response_coverpage(self):
+        del self.response["coverpage"]
+        with self.assertRaises(ValidationError):
+            export_document(self.config, self.response)
+
+    def test_requires_coverpage_true(self):
+        self.config["reportableRest"]["coverpage"] = False
         with self.assertRaises(ValidationError):
             export_document(self.config, self.response)
 
